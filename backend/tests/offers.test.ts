@@ -13,6 +13,9 @@ beforeEach(() => {
 const listOffersAs = (kind: UserKind, id: number) =>
   request(app).get("/offers").set("Authorization", tokenFor(kind, id));
 
+const listOffersAsWithPeriod = (kind: UserKind, id: number, period: string) =>
+  request(app).get(`/offers?period=${period}`).set("Authorization", tokenFor(kind, id));
+
 const offerIds = (body: { id: number }[]): number[] => body.map((offer) => offer.id);
 
 describe("GET /offers : accès", () => {
@@ -35,6 +38,44 @@ describe("GET /offers : accès", () => {
 });
 
 describe("GET /offers : visibilité selon le profil", () => {
+  it("filtre les offres d'un administrateur par période", async () => {
+    const response = await listOffersAsWithPeriod(
+      "ADMIN",
+      ADMINISTRATOR.ANNE_LECLERCQ,
+      "P1",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+    expect(response.body.every((offer: { period: string }) => offer.period === "P1")).toBe(true);
+  });
+
+  it("combine le filtre de période avec la visibilité d'un étudiant", async () => {
+    const response = await listOffersAsWithPeriod("STUDENT", STUDENT.LUCAS_DUPONT, "P2");
+
+    expect(response.status).toBe(200);
+    expect(offerIds(response.body)).toEqual([
+      OFFER.INTERNAL_CHATBOT,
+      OFFER.DATA_QUALITY,
+      OFFER.FLEET_APP,
+      OFFER.BILLING_API,
+    ]);
+    expect(response.body.every((offer: { status: string }) => offer.status === "PUBLISHED")).toBe(
+      true,
+    );
+  });
+
+  it("refuse une période inconnue", async () => {
+    const response = await listOffersAsWithPeriod(
+      "ADMIN",
+      ADMINISTRATOR.ANNE_LECLERCQ,
+      "P3",
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_QUERY");
+  });
+
   it("montre toutes les offres à un administrateur, de la plus récente année à la plus ancienne", async () => {
     const response = await listOffersAs("ADMIN", ADMINISTRATOR.ANNE_LECLERCQ);
 

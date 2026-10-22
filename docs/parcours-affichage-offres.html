@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gesta — Parcours d'affichage des offres</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #536174;
+        --line: #d9e0ea;
+        --surface: #f5f7fb;
+        --accent: #2457a6;
+        --accent-soft: #eaf1ff;
+        --code: #202938;
+        --white: #fff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--surface);
+        font: 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 3rem 0 5rem;
+      }
+
+      h1, h2, h3 { line-height: 1.2; }
+      h1 { margin-bottom: .75rem; font-size: clamp(2rem, 5vw, 3.4rem); }
+      h2 { margin-top: 3rem; padding-bottom: .5rem; border-bottom: 2px solid var(--line); }
+      h3 { margin-top: 0; color: var(--accent); }
+      p { max-width: 78ch; }
+      a { color: var(--accent); }
+
+      .lead {
+        color: var(--muted);
+        font-size: 1.15rem;
+        max-width: 78ch;
+      }
+
+      .architecture,
+      .flow,
+      .files {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .architecture { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+      .flow { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+      .files { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+      .card {
+        padding: 1.25rem;
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: .75rem;
+        box-shadow: 0 .25rem 1rem rgb(25 45 80 / 6%);
+      }
+
+      .step {
+        position: relative;
+        border-top: 4px solid var(--accent);
+      }
+
+      .number {
+        display: inline-grid;
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: .75rem;
+        place-items: center;
+        color: var(--white);
+        background: var(--accent);
+        border-radius: 50%;
+        font-weight: 700;
+      }
+
+      code {
+        padding: .1rem .35rem;
+        color: #153d79;
+        background: var(--accent-soft);
+        border-radius: .25rem;
+        font-size: .92em;
+      }
+
+      pre {
+        overflow-x: auto;
+        padding: 1rem 1.25rem;
+        color: #edf3ff;
+        background: var(--code);
+        border-radius: .5rem;
+      }
+
+      pre code {
+        padding: 0;
+        color: inherit;
+        background: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--white);
+      }
+
+      th, td {
+        padding: .8rem 1rem;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th { background: var(--accent-soft); }
+      .note { border-left: 4px solid var(--accent); padding: .75rem 1rem; background: var(--accent-soft); }
+      footer { margin-top: 3rem; color: var(--muted); font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p><a href="../README.md">Gesta</a> / documentation technique</p>
+        <h1>Du composant React à la base de données</h1>
+        <p class="lead">
+          Ce document retrace le parcours de <code>GET /offers</code>, depuis la page
+          React jusqu'aux tables SQLite, puis le retour des données vers le tableau affiché.
+          Il indique aussi les fichiers à prévoir pour ajouter un filtre par période.
+        </p>
+      </header>
+
+      <section aria-labelledby="architecture">
+        <h2 id="architecture">Architecture générale</h2>
+        <div class="architecture">
+          <article class="card">
+            <h3>Frontend React</h3>
+            <p>
+              Les pages composent les hooks et les composants. Les hooks chargent un état
+              prêt à afficher ; les services HTTP valident les réponses ; les modèles
+              décrivent les données de l'API.
+            </p>
+          </article>
+          <article class="card">
+            <h3>API Express</h3>
+            <p>
+              Les middlewares authentifient et autorisent la requête. Le contrôleur reste
+              mince, le service porte les règles métier et le repository porte le SQL.
+            </p>
+          </article>
+          <article class="card">
+            <h3>SQLite</h3>
+            <p>
+              Les migrations définissent le schéma. Une offre référence une entreprise,
+              une année académique et une période ; les jointures reconstruisent la ligne
+              nécessaire à l'API.
+            </p>
+          </article>
+        </div>
+        <p class="note">
+          Le flux backend est donc :
+          <strong>controller → service → repository → SQLite</strong>.
+          Au retour, les mappers transforment les lignes SQL en objet métier puis en DTO
+          public. Voir <a href="architecture.md">docs/architecture.md</a>.
+        </p>
+      </section>
+
+      <section aria-labelledby="flow">
+        <h2 id="flow">Parcours détaillé de l'affichage</h2>
+        <div class="flow">
+          <article class="card step">
+            <span class="number">1</span>
+            <h3>La route React est rendue</h3>
+            <p>
+              <code>frontend/src/App.tsx</code> affiche <code>OffersPage</code> pour
+              <code>/offres</code> si <code>canListOffers(user)</code> l'autorise côté
+              interface. Le backend reste l'autorité finale.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">2</span>
+            <h3>La page lance le hook</h3>
+            <p>
+              <code>frontend/src/pages/OffersPage.tsx</code> appelle
+              <code>useOffers(token, onUnauthorized)</code>. Il gère chargement, erreur,
+              résultat vide et rendu de <code>OfferTable</code>.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">3</span>
+            <h3>Le hook appelle le service</h3>
+            <p>
+              <code>frontend/src/hooks/useOffers.ts</code> utilise un
+              <code>AbortController</code> et appelle
+              <code>frontend/src/services/offers.service.ts</code>. Le service envoie le
+              jeton directement dans <code>Authorization</code>, sans préfixe
+              <code>Bearer</code>.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">4</span>
+            <h3>Vite relaie la requête</h3>
+            <p>
+              <code>frontend/vite.config.ts</code> relaie
+              <code>/api/offers</code> vers l'API (port 3000) et retire le préfixe
+              <code>/api</code>. Express reçoit donc <code>GET /offers</code>.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">5</span>
+            <h3>Express authentifie et autorise</h3>
+            <p>
+              <code>backend/src/app.ts</code> branche
+              <code>authenticate</code> avant le routeur. Le middleware relit
+              l'utilisateur en base à partir du jeton. Puis
+              <code>backend/src/controllers/offers.controller.ts</code> applique
+              <code>authorize(canListOffers)</code>.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">6</span>
+            <h3>Le service choisit la visibilité</h3>
+            <p>
+              <code>backend/src/services/offers.service.ts</code> construit le filtre
+              selon le profil : toutes les offres pour un administrateur, les offres
+              <code>PUBLISHED</code> pour un étudiant, ou les offres du déposant pour un
+              contact autorisé.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">7</span>
+            <h3>Le repository exécute SQL</h3>
+            <p>
+              <code>backend/src/repositories/offers.repository.ts</code> lie les tables
+              <code>offers</code>, <code>companies</code>, <code>academic_years</code> et
+              <code>periods</code>. Il applique les filtres de visibilité et trie par
+              année académique puis date de création.
+            </p>
+          </article>
+          <article class="card step">
+            <span class="number">8</span>
+            <h3>Les données remontent vers React</h3>
+            <p>
+              <code>backend/src/mappers/offer.mapper.ts</code> transforme le DBO en
+              modèle puis en DTO. Le service frontend vérifie le JSON avec un type guard.
+              Enfin <code>frontend/src/components/OfferTable.tsx</code> affiche le titre,
+              l'entreprise, l'année, la période et le statut.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="data">
+        <h2 id="data">Correspondance avec la base</h2>
+        <pre><code>offers.period_id
+  └── periods.id
+        ├── periods.code              → OfferDto.period (P1 | P2 | OTHER)
+        └── periods.academic_year_id
+              └── academic_years.id   → OfferDto.academicYear</code></pre>
+        <p>
+          Le schéma est défini dans
+          <code>backend/src/db/migrations/001_initial.sql</code>. La contrainte de clé
+          étrangère composite garantit que la période appartient bien à l'année
+          académique de l'offre. Les codes restent en anglais dans l'API et le stockage ;
+          les libellés d'interface sont définis dans
+          <code>frontend/src/utils/labels.ts</code>.
+        </p>
+      </section>
+
+      <section aria-labelledby="filter">
+        <h2 id="filter">Ajout d'un filtre par période</h2>
+        <p>
+          Une implémentation cohérente ferait voyager un paramètre facultatif, par exemple
+          <code>GET /offers?period=P1</code>, jusqu'au repository. Le filtre ne doit pas
+          remplacer les règles de visibilité existantes : il doit s'ajouter à celles-ci.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Fichier</th>
+              <th>Rôle dans le changement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>frontend/src/pages/OffersPage.tsx</code></td>
+              <td>Ajouter le contrôle de sélection ou recevoir la période choisie, puis la transmettre au hook.</td>
+            </tr>
+            <tr>
+              <td><code>frontend/src/hooks/useOffers.ts</code></td>
+              <td>Ajouter la période aux paramètres du hook et à ses dépendances d'effet pour recharger lorsque le choix change.</td>
+            </tr>
+            <tr>
+              <td><code>frontend/src/services/offers.service.ts</code></td>
+              <td>Construire le query string encodé et appeler <code>/offers?period=...</code>.</td>
+            </tr>
+            <tr>
+              <td><code>frontend/src/models/offer.ts</code></td>
+              <td>Réutiliser <code>PeriodCode</code> et <code>PERIOD_CODES</code> pour typer les valeurs acceptées.</td>
+            </tr>
+            <tr>
+              <td><code>frontend/src/components/OfferTable.tsx</code> <em>(si nécessaire)</em></td>
+              <td>À modifier seulement si le contrôle de filtre est placé dans ou près du tableau.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/controllers/offers.controller.ts</code></td>
+              <td>Lire et valider le paramètre <code>period</code> ; refuser les valeurs inconnues avec <code>INVALID_QUERY</code>.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/services/offers.service.ts</code></td>
+              <td>Ajouter le critère de période au filtre tout en conservant la visibilité liée au profil.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/repositories/offers.repository.ts</code></td>
+              <td>Étendre <code>OfferFilter</code> et le <code>WHERE</code> SQL pour filtrer <code>p.code</code> ou <code>o.period_id</code>.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/models/offer.ts</code></td>
+              <td>Probablement inchangé : <code>PeriodCode</code> existe déjà ; à vérifier si le contrat d'entrée devient un type partagé.</td>
+            </tr>
+            <tr>
+              <td><code>backend/API.md</code></td>
+              <td>Documenter le paramètre, les codes autorisés et l'erreur de validation.</td>
+            </tr>
+            <tr>
+              <td><code>backend/http/offers.http</code></td>
+              <td>Ajouter des exemples de requêtes filtrées, si les scénarios REST Client sont maintenus.</td>
+            </tr>
+            <tr>
+              <td><code>backend/tests/offers.test.ts</code></td>
+              <td>Tester chaque période, une valeur invalide et la combinaison période + visibilité par profil.</td>
+            </tr>
+            <tr>
+              <td><code>frontend/tests/OffersPage.test.tsx</code></td>
+              <td>Tester l'interaction du filtre, la requête envoyée et le rendu de la liste filtrée.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Aucune nouvelle migration n'est nécessaire pour ce filtre : la table
+          <code>periods</code> et la relation avec <code>offers</code> existent déjà.
+        </p>
+      </section>
+
+      <footer>
+        Document généré à partir de l'implémentation actuelle de Gesta. Les chemins sont
+        relatifs à la racine du dépôt.
+      </footer>
+    </main>
+  </body>
+</html>
