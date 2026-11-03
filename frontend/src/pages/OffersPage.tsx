@@ -7,6 +7,9 @@ import { useOffers } from "../hooks/useOffers.ts";
 import { PERIOD_CODES, type PeriodCode } from "../models/offer.ts";
 import type { User } from "../models/user.ts";
 import { PERIOD_LABELS } from "../utils/labels.ts";
+import ApplicationModal from "../components/ApplicationModal.tsx";
+import { createApplication } from "../services/applications.service.ts";
+import type { Offer } from "../models/offer.ts";
 
 interface OffersPageProps {
   user: User;
@@ -22,11 +25,28 @@ const DESCRIPTIONS = {
 
 const OffersPage = ({ user, token, onUnauthorized }: OffersPageProps) => {
   const [period, setPeriod] = useState<PeriodCode | "">("");
+  const [applicationOffer, setApplicationOffer] = useState<Offer | null>(null);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { offers, isLoading, error } = useOffers(
     token,
     onUnauthorized,
     period === "" ? undefined : period,
   );
+
+  const submitApplication = async (message: string | null) => {
+    if (applicationOffer === null) return;
+    setIsSubmitting(true);
+    setApplicationError(null);
+    try {
+      await createApplication(token, applicationOffer.id, message);
+      setApplicationOffer(null);
+    } catch (reason: unknown) {
+      setApplicationError(reason instanceof Error ? reason.message : "Candidature impossible");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const renderContent = () => {
     if (error) return <ErrorState message={error} />;
@@ -37,7 +57,13 @@ const OffersPage = ({ user, token, onUnauthorized }: OffersPageProps) => {
         <p className="result-count">
           {offers.length} offre{offers.length > 1 ? "s" : ""}
         </p>
-        <OfferTable offers={offers} />
+        <OfferTable
+          offers={offers}
+          onApply={user.kind === "STUDENT" ? (offer) => {
+            setApplicationError(null);
+            setApplicationOffer(offer);
+          } : undefined}
+        />
       </>
     );
   };
@@ -62,6 +88,20 @@ const OffersPage = ({ user, token, onUnauthorized }: OffersPageProps) => {
         </select>
       </label>
       {renderContent()}
+      {applicationOffer && (
+        <ApplicationModal
+          offer={applicationOffer}
+          isSubmitting={isSubmitting}
+          error={applicationError}
+          onSubmit={submitApplication}
+          onClose={() => {
+            if (!isSubmitting) {
+              setApplicationOffer(null);
+              setApplicationError(null);
+            }
+          }}
+        />
+      )}
     </section>
   );
 };
