@@ -1,6 +1,6 @@
 import type { Application } from "../models/application.ts";
 import { API_URL, readJson } from "../utils/api.ts";
-import { isApplication } from "../utils/guards.ts";
+import { isApplication, isApplicationList } from "../utils/guards.ts";
 
 export const createApplication = async (
   token: string,
@@ -18,4 +18,15 @@ export const createApplication = async (
     signal,
   });
   return readJson(response, isApplication, "Candidature impossible");
+};
+
+export const getMyApplications = async (
+  token: string,
+  signal?: AbortSignal,
+): Promise<Application[]> => {
+  const response = await fetch(`${API_URL}/applications/me`, {
+    headers: { Authorization: token },
+    signal,
+  });
+  return readJson(response, isApplicationList, "Chargement des candidatures impossible");
 };

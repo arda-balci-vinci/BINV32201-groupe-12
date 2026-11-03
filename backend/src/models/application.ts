@@ -14,6 +14,8 @@ export interface ApplicationDbo {
   message: string | null;
   status: ApplicationStatus;
   applied_at: string;
+  offer_title?: string;
+  company_short_name?: string;
 }
 
 export interface Application {
@@ -23,6 +25,8 @@ export interface Application {
   message: string | null;
   status: ApplicationStatus;
   appliedAt: string;
+  offerTitle?: string;
+  companyShortName?: string;
 }
 
 export interface ApplicationDto {
@@ -32,4 +36,6 @@ export interface ApplicationDto {
   message: string | null;
   status: ApplicationStatus;
   appliedAt: string;
+  offerTitle?: string;
+  companyShortName?: string;
 }

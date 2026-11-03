@@ -192,3 +192,13 @@ Permet à un étudiant connecté de candidater à une offre publiée.
   existe déjà pour cet étudiant et cette offre
 - `401` `UNAUTHENTICATED` : session absente ou invalide
 - `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant
+
+## GET /applications/me
+
+Retourne les candidatures de l'étudiant connecté, avec l'offre et l'entreprise
+associées, triées de la plus récente à la plus ancienne.
+
+- `200` : tableau de candidatures avec `offerTitle`, `companyShortName`,
+  `message`, `status` et `appliedAt`
+- `401` `UNAUTHENTICATED` : session absente ou invalide
+- `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant

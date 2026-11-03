@@ -29,6 +29,12 @@ export const createApplicationsService = (repository: ApplicationsRepository) =>
 
     return toApplication(repository.insert(input.offerId, viewer.id, input.message));
   },
+  listMine: (viewer: User): Application[] => {
+    if (!isStudent(viewer)) {
+      throw new HttpError(403, "FORBIDDEN", "Seul un étudiant peut consulter ses candidatures");
+    }
+    return repository.findByStudent(viewer.id).map(toApplication);
+  },
 });
 
 export type ApplicationsService = ReturnType<typeof createApplicationsService>;

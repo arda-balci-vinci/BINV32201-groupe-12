@@ -14,4 +14,6 @@ export interface Application {
   message: string | null;
   status: ApplicationStatus;
   appliedAt: string;
+  offerTitle?: string;
+  companyShortName?: string;
 }

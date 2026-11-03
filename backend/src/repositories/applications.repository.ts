@@ -40,6 +40,15 @@ export const createApplicationsRepository = (db: Db) => {
     FROM applications
     WHERE id = @id
   `);
+  const findByStudent = db.prepare<{ studentId: number }, ApplicationDbo>(`
+    SELECT a.id, a.offer_id, a.student_id, a.message, a.status, a.applied_at,
+           o.title AS offer_title, c.short_name AS company_short_name
+    FROM applications a
+    JOIN offers o ON o.id = a.offer_id
+    JOIN companies c ON c.id = o.company_id
+    WHERE a.student_id = @studentId
+    ORDER BY a.applied_at DESC, a.id DESC
+  `);
 
   return {
     findOfferStatus: (id: number): OfferStatus | null => findOfferStatus.get({ id })?.status ?? null,
@@ -56,6 +65,7 @@ export const createApplicationsRepository = (db: Db) => {
       }
       return application;
     },
+    findByStudent: (studentId: number): ApplicationDbo[] => findByStudent.all({ studentId }),
   };
 };
 

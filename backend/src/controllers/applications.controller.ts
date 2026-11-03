@@ -42,3 +42,13 @@ export const createOfferApplicationsRouter = (service: ApplicationsService) => {
 
   return router;
 };
+
+export const createApplicationsRouter = (service: ApplicationsService) => {
+  const router = Router();
+
+  router.get("/me", authorize(canApplyToOffer), (req, res) => {
+    res.json(service.listMine(getCurrentUser(req)).map(toApplicationDto));
+  });
+
+  return router;
+};
