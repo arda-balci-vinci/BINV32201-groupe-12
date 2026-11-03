@@ -193,6 +193,18 @@ Permet à un étudiant connecté de candidater à une offre publiée.
 - `401` `UNAUTHENTICATED` : session absente ou invalide
 - `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant
 
+## POST /applications/:id/withdraw
+
+Retire la candidature de l'étudiant connecté. Seule une candidature `IN_PROGRESS`
+peut être retirée; elle passe alors à `WITHDRAWN`.
+
+- `200` : candidature mise à jour
+- `400` `INVALID_PARAM` : identifiant invalide
+- `400` `APPLICATION_NOT_WITHDRAWABLE` : candidature déjà traitée ou retirée
+- `401` `UNAUTHENTICATED` : session absente ou invalide
+- `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant
+- `404` `NOT_FOUND` : candidature absente ou appartenant à un autre étudiant
+
 ## GET /applications/me
 
 Retourne les candidatures de l'étudiant connecté, avec l'offre et l'entreprise

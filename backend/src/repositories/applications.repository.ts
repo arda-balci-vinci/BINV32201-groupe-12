@@ -15,6 +15,7 @@ interface InsertParams {
 
 interface ApplicationIdParams {
   id: number;
+  studentId?: number;
 }
 
 export const createApplicationsRepository = (db: Db) => {
@@ -49,6 +50,19 @@ export const createApplicationsRepository = (db: Db) => {
     WHERE a.student_id = @studentId
     ORDER BY a.applied_at DESC, a.id DESC
   `);
+  const findOwned = db.prepare<ApplicationIdParams, ApplicationDbo>(`
+    SELECT a.id, a.offer_id, a.student_id, a.message, a.status, a.applied_at,
+           o.title AS offer_title, c.short_name AS company_short_name
+    FROM applications a
+    JOIN offers o ON o.id = a.offer_id
+    JOIN companies c ON c.id = o.company_id
+    WHERE a.id = @id AND a.student_id = @studentId
+  `);
+  const withdraw = db.prepare<{ id: number; studentId: number }, { changes: number }>(`
+    UPDATE applications
+    SET status = 'WITHDRAWN'
+    WHERE id = @id AND student_id = @studentId AND status = 'IN_PROGRESS'
+  `);
 
   return {
     findOfferStatus: (id: number): OfferStatus | null => findOfferStatus.get({ id })?.status ?? null,
@@ -66,6 +80,12 @@ export const createApplicationsRepository = (db: Db) => {
       return application;
     },
     findByStudent: (studentId: number): ApplicationDbo[] => findByStudent.all({ studentId }),
+    findOwned: (id: number, studentId: number): ApplicationDbo | null =>
+      findOwned.get({ id, studentId }) ?? null,
+    withdraw: (id: number, studentId: number): ApplicationDbo | null => {
+      if (withdraw.run({ id, studentId }).changes === 0) return null;
+      return findOwned.get({ id, studentId }) ?? null;
+    },
   };
 };
 

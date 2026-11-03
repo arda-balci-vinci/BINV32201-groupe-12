@@ -18,6 +18,14 @@ const parseOfferId = (value: string): number => {
   return id;
 };
 
+const parseApplicationId = (value: string): number => {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new HttpError(400, "INVALID_PARAM", "L'identifiant de la candidature est invalide");
+  }
+  return id;
+};
+
 const parseBody = (value: unknown): CreateApplicationBody => {
   if (typeof value !== "object" || value === null) {
     throw new HttpError(400, "INVALID_BODY", "Le corps doit contenir un message facultatif");
@@ -48,6 +56,14 @@ export const createApplicationsRouter = (service: ApplicationsService) => {
 
   router.get("/me", authorize(canApplyToOffer), (req, res) => {
     res.json(service.listMine(getCurrentUser(req)).map(toApplicationDto));
+  });
+
+  router.post("/:applicationId/withdraw", authorize(canApplyToOffer), (req, res) => {
+    const application = service.withdraw(
+      getCurrentUser(req),
+      parseApplicationId(String(req.params.applicationId)),
+    );
+    res.json(toApplicationDto(application));
   });
 
   return router;

@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Application } from "../models/application.ts";
-import { getMyApplications } from "../services/applications.service.ts";
+import { getMyApplications, withdrawApplication } from "../services/applications.service.ts";
 import { isUnauthorized } from "../utils/api.ts";
 
 export const useApplications = (token: string, onUnauthorized: () => void) => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -25,5 +26,21 @@ export const useApplications = (token: string, onUnauthorized: () => void) => {
     return () => controller.abort();
   }, [token, onUnauthorized]);
 
-  return { applications, isLoading, error };
+  const withdraw = useCallback(async (applicationId: number) => {
+    setWithdrawingId(applicationId);
+    setError(null);
+    try {
+      const updated = await withdrawApplication(token, applicationId);
+      setApplications((current) => current.map((application) =>
+        application.id === updated.id ? updated : application,
+      ));
+    } catch (reason: unknown) {
+      if (isUnauthorized(reason)) onUnauthorized();
+      else setError(reason instanceof Error ? reason.message : "Retrait impossible");
+    } finally {
+      setWithdrawingId(null);
+    }
+  }, [token, onUnauthorized]);
+
+  return { applications, isLoading, error, withdraw, withdrawingId };
 };

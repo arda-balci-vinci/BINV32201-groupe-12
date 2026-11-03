@@ -10,7 +10,14 @@ interface ApplicationsPageProps {
 }
 
 const ApplicationsPage = ({ token, onUnauthorized }: ApplicationsPageProps) => {
-  const { applications, isLoading, error } = useApplications(token, onUnauthorized);
+  const { applications, isLoading, error, withdraw, withdrawingId } =
+    useApplications(token, onUnauthorized);
+
+  const handleWithdraw = (applicationId: number) => {
+    if (window.confirm("Voulez-vous retirer cette candidature ?")) {
+      void withdraw(applicationId);
+    }
+  };
 
   return (
     <section>
@@ -19,7 +26,11 @@ const ApplicationsPage = ({ token, onUnauthorized }: ApplicationsPageProps) => {
       {error ? <ErrorState message={error} /> :
         isLoading ? <LoadingState /> :
           applications.length === 0 ? <EmptyState message="Aucune candidature à afficher." /> :
-            <ApplicationTable applications={applications} />}
+            <ApplicationTable
+              applications={applications}
+              onWithdraw={handleWithdraw}
+              withdrawingId={withdrawingId}
+            />}
     </section>
   );
 };

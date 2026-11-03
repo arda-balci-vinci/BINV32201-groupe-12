@@ -4,9 +4,11 @@ import StatusBadge from "./StatusBadge.tsx";
 
 interface ApplicationTableProps {
   applications: Application[];
+  onWithdraw: (applicationId: number) => void;
+  withdrawingId: number | null;
 }
 
-const ApplicationTable = ({ applications }: ApplicationTableProps) => (
+const ApplicationTable = ({ applications, onWithdraw, withdrawingId }: ApplicationTableProps) => (
   <div className="table-wrapper">
     <table className="data-table">
       <thead>
@@ -16,6 +18,7 @@ const ApplicationTable = ({ applications }: ApplicationTableProps) => (
           <th scope="col">Message</th>
           <th scope="col">Statut</th>
           <th scope="col">Date</th>
+          <th scope="col">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -31,6 +34,18 @@ const ApplicationTable = ({ applications }: ApplicationTableProps) => (
               />
             </td>
             <td>{application.appliedAt}</td>
+            <td>
+              {application.status === "IN_PROGRESS" && (
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => onWithdraw(application.id)}
+                  disabled={withdrawingId !== null}
+                >
+                  {withdrawingId === application.id ? "Retrait…" : "Retirer"}
+                </button>
+              )}
+            </td>
           </tr>
         ))}
       </tbody>
