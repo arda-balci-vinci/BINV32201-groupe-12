@@ -171,3 +171,46 @@ récente à la plus ancienne, puis de la plus récente à la plus ancienne.
 - `401` `UNAUTHENTICATED` : session absente ou invalide.
 - `403` `FORBIDDEN` : contact seulement promoteur ou signataire.
 - `400` `INVALID_QUERY` : `period` ne vaut pas `P1`, `P2` ou `OTHER`.
+
+## POST /offers/:id/applications
+
+Permet à un étudiant connecté de candidater à une offre publiée.
+
+### Requête
+
+- Header `Authorization` obligatoire
+- Réservé au rôle `STUDENT`
+- Body JSON : `{ "message": string | null }`; le message est facultatif.
+
+### Réponses
+
+- `201` : candidature créée avec le statut `IN_PROGRESS`
+- `400` `INVALID_BODY` ou `INVALID_PARAM` : requête invalide
+- `400` `INVALID_OFFER` : offre inexistante
+- `400` `OFFER_NOT_PUBLISHED` : l'offre n'est pas publiée
+- `400` `APPLICATION_EXISTS` : une candidature `IN_PROGRESS` ou `SELECTED`
+  existe déjà pour cet étudiant et cette offre
+- `401` `UNAUTHENTICATED` : session absente ou invalide
+- `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant
+
+## POST /applications/:id/withdraw
+
+Retire la candidature de l'étudiant connecté. Seule une candidature `IN_PROGRESS`
+peut être retirée; elle passe alors à `WITHDRAWN`.
+
+- `200` : candidature mise à jour
+- `400` `INVALID_PARAM` : identifiant invalide
+- `400` `APPLICATION_NOT_WITHDRAWABLE` : candidature déjà traitée ou retirée
+- `401` `UNAUTHENTICATED` : session absente ou invalide
+- `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant
+- `404` `NOT_FOUND` : candidature absente ou appartenant à un autre étudiant
+
+## GET /applications/me
+
+Retourne les candidatures de l'étudiant connecté, avec l'offre et l'entreprise
+associées, triées de la plus récente à la plus ancienne.
+
+- `200` : tableau de candidatures avec `offerTitle`, `companyShortName`,
+  `message`, `status` et `appliedAt`
+- `401` `UNAUTHENTICATED` : session absente ou invalide
+- `403` `FORBIDDEN` : l'utilisateur n'est pas un étudiant

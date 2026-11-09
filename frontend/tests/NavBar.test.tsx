@@ -30,4 +30,9 @@ describe("NavBar", () => {
     expect(screen.queryByRole("link", { name: "Offres" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Entreprises" })).toBeInTheDocument();
   });
+
+  it("propose les candidatures uniquement à un étudiant", () => {
+    renderNavBar(studentUser);
+    expect(screen.getByRole("link", { name: "Mes candidatures" })).toBeInTheDocument();
+  });
 });
