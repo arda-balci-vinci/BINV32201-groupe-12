@@ -40,6 +40,15 @@ describe("POST /offers/:id/applications", () => {
     expect(response.body.error.code).toBe("FORBIDDEN");
   });
 
+  it("refuse une candidature sans session", async () => {
+    const response = await request(app)
+      .post(`/offers/${OFFER.FLEET_APP}/applications`)
+      .send({});
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("UNAUTHENTICATED");
+  });
+
   it("refuse une candidature active en doublon", async () => {
     const response = await applyAs(STUDENT.LUCAS_DUPONT, OFFER.FLEET_APP);
 
@@ -58,6 +67,7 @@ describe("POST /offers/:id/applications", () => {
     const response = await applyAs(STUDENT.INES_HADDAD, OFFER.BILLING_API);
 
     expect(response.status).toBe(201);
+    expect(response.body.message).toBeNull();
     expect(response.body.status).toBe("IN_PROGRESS");
   });
 
