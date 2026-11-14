@@ -40,6 +40,14 @@ describe("POST /applications/:id/withdraw", () => {
     expect(response.body.error.code).toBe("NOT_FOUND");
   });
 
+  it("refuse un retrait sans session", async () => {
+    const response = await request(app)
+      .post(`/applications/${APPLICATION.LUCAS_FLEET_APP}/withdraw`);
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("UNAUTHENTICATED");
+  });
+
   it("permet une nouvelle candidature après retrait", async () => {
     const withdrawn = await withdrawAs(STUDENT.LUCAS_DUPONT, APPLICATION.LUCAS_FLEET_APP);
     expect(withdrawn.status).toBe(200);
