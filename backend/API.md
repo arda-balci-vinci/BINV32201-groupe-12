@@ -74,7 +74,6 @@ Retourne l'utilisateur connecté.
 ### Requête
 
 - Header `Authorization` obligatoire
-
 ### Réponses
 
 - `200` :
@@ -147,6 +146,10 @@ récente à la plus ancienne, puis de la plus récente à la plus ancienne.
 ### Requête
 
 - Header `Authorization` obligatoire
+- Paramètre facultatif `period` : période de l'offre (`P1`, `P2` ou `OTHER`).
+- Paramètre facultatif `search` : expression recherchée dans le titre, sans distinguer
+  les majuscules et les minuscules. Les espaces au début et à la fin sont ignorés ; une
+  valeur vide est ignorée. La recherche porte sur l'expression entière.
 
 ### Réponses
 
@@ -170,7 +173,8 @@ récente à la plus ancienne, puis de la plus récente à la plus ancienne.
 
 - `401` `UNAUTHENTICATED` : session absente ou invalide.
 - `403` `FORBIDDEN` : contact seulement promoteur ou signataire.
-- `400` `INVALID_QUERY` : `period` ne vaut pas `P1`, `P2` ou `OTHER`.
+- `400` `INVALID_QUERY` : `period` ne vaut pas `P1`, `P2` ou `OTHER`, ou `search` est
+  répété ou dépasse 100 caractères.
 
 ## POST /offers/:id/applications
 

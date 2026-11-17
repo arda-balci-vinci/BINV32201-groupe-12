@@ -55,6 +55,42 @@ describe("OffersPage", () => {
     expect(screen.queryByText("Refonte du portail client")).not.toBeInTheDocument();
   });
 
+  it("transmet la recherche par titre avec la période sélectionnée", async () => {
+    const fetchMock = stubFetch({
+      "/api/offers?period=P1&search=portail": () => Response.json([offers[0]]),
+      "/api/offers": () => Response.json(offers),
+    });
+
+    render(<OffersPage user={contactUser} token="jeton" onUnauthorized={vi.fn()} />);
+    await screen.findByText("Refonte du portail client");
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Titre" }), {
+      target: { value: "  portail " },
+    });
+    fireEvent.change(screen.getByLabelText("Période"), { target: { value: "P1" } });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/offers?period=P1&search=portail",
+      expect.objectContaining({ headers: { Authorization: "jeton" } }),
+    ));
+  });
+
+  it("affiche un message adapté quand la recherche ne retourne aucune offre", async () => {
+    stubFetch({
+      "/api/offers?search=introuvable": () => Response.json([]),
+      "/api/offers": () => Response.json(offers),
+    });
+
+    render(<OffersPage user={contactUser} token="jeton" onUnauthorized={vi.fn()} />);
+    await screen.findByText("Refonte du portail client");
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Titre" }), {
+      target: { value: "introuvable" },
+    });
+
+    expect(await screen.findByText("Aucune offre ne correspond à votre recherche.")).toBeInTheDocument();
+  });
+
   it("adapte la description au profil", async () => {
     stubFetch({ "/api/offers": () => Response.json([]) });
 
