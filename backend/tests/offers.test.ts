@@ -16,6 +16,9 @@ const listOffersAs = (kind: UserKind, id: number) =>
 const listOffersAsWithPeriod = (kind: UserKind, id: number, period: string) =>
   request(app).get(`/offers?period=${period}`).set("Authorization", tokenFor(kind, id));
 
+const listOffersAsWithQuery = (kind: UserKind, id: number, query: string) =>
+  request(app).get(`/offers?${query}`).set("Authorization", tokenFor(kind, id));
+
 const offerIds = (body: { id: number }[]): number[] => body.map((offer) => offer.id);
 
 describe("GET /offers : accès", () => {
@@ -63,6 +66,53 @@ describe("GET /offers : visibilité selon le profil", () => {
     expect(response.body.every((offer: { status: string }) => offer.status === "PUBLISHED")).toBe(
       true,
     );
+  });
+
+  it("recherche une expression dans le titre sans distinguer la casse ni les espaces externes", async () => {
+    const response = await listOffersAsWithQuery(
+      "ADMIN",
+      ADMINISTRATOR.ANNE_LECLERCQ,
+      "search=%20MODULE%20DE%20RAPPORTS%20",
+    );
+
+    expect(response.status).toBe(200);
+    expect(offerIds(response.body)).toEqual([OFFER.PDF_REPORTS]);
+  });
+
+  it("combine la recherche par titre avec la période et la visibilité étudiante", async () => {
+    const response = await listOffersAsWithQuery(
+      "STUDENT",
+      STUDENT.LUCAS_DUPONT,
+      "period=P2&search=API",
+    );
+
+    expect(response.status).toBe(200);
+    expect(offerIds(response.body)).toEqual([OFFER.BILLING_API]);
+    expect(response.body.every((offer: { status: string }) => offer.status === "PUBLISHED")).toBe(
+      true,
+    );
+  });
+
+  it("renvoie une liste vide sans correspondance", async () => {
+    const response = await listOffersAsWithQuery(
+      "ADMIN",
+      ADMINISTRATOR.ANNE_LECLERCQ,
+      "search=introuvable",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+
+  it("conserve toutes les offres accessibles avec une recherche vide", async () => {
+    const response = await listOffersAsWithQuery(
+      "ADMIN",
+      ADMINISTRATOR.ANNE_LECLERCQ,
+      "search=%20%20",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(10);
   });
 
   it("refuse une période inconnue", async () => {
